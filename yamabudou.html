@@ -1,0 +1,597 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>山葡萄採取ノート</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Shippori+Mincho:wght@500;700&family=Zen+Kaku+Gothic+New:wght@400;500;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --paper:#EDE7D3;
+    --paper-deep:#E3DBC2;
+    --ink:#2B241C;
+    --ink-soft:#5A5142;
+    --grape:#4A2545;
+    --grape-deep:#33172F;
+    --grape-soft:#8B5E85;
+    --moss:#5C6B47;
+    --moss-soft:#A8B48E;
+    --bark:#7A4F35;
+    --line: rgba(43,36,28,0.14);
+    --card: #F5F0E0;
+    --shadow: 0 2px 10px rgba(43,36,28,0.08);
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:var(--paper); color:var(--ink);
+    font-family:'Zen Kaku Gothic New', sans-serif;
+    -webkit-font-smoothing:antialiased; min-height:100vh;
+  }
+  .app{max-width:520px;margin:0 auto;padding:0 0 100px;}
+
+  header.top{ padding:26px 20px 16px; position:relative; overflow:hidden;}
+  header.top::before{
+    content:""; position:absolute; top:-40px; right:-30px; width:160px;height:160px;border-radius:50%;
+    background:radial-gradient(circle at 30% 30%, var(--grape-soft), var(--grape) 70%); opacity:0.18;
+  }
+  .eyebrow{ font-family:'JetBrains Mono', monospace; font-size:11px; letter-spacing:0.12em; text-transform:uppercase; color:var(--moss); font-weight:500;}
+  h1{ font-family:'Shippori Mincho', serif; font-size:26px; font-weight:700; margin:6px 0 4px; color:var(--grape-deep);}
+  .sub{font-size:13px; color:var(--ink-soft); margin:0;}
+
+  .toolbar{ display:flex; gap:10px; padding:6px 20px 14px; align-items:center;}
+  .count-chip{
+    font-family:'JetBrains Mono', monospace; font-size:12px; color:var(--ink-soft);
+    background:var(--paper-deep); padding:6px 12px; border-radius:999px; flex:1;
+  }
+  .fab{
+    display:flex; align-items:center; gap:6px;
+    border:none; background:var(--grape); color:#F5EFE0; border-radius:999px;
+    padding:10px 18px 10px 14px; font-size:14px; font-weight:500; cursor:pointer;
+    box-shadow:var(--shadow); font-family:'Zen Kaku Gothic New';
+  }
+  .fab .plus{font-size:18px; line-height:1;}
+
+  .list{padding:4px 16px; display:flex; flex-direction:column; gap:12px;}
+  .section-label{
+    font-family:'JetBrains Mono', monospace; font-size:11px; color:var(--ink-soft);
+    letter-spacing:0.06em; text-transform:uppercase; margin:14px 4px 2px;
+  }
+  .empty{
+    margin:40px 20px; text-align:center; color:var(--ink-soft); font-size:14px; line-height:1.8;
+    padding:30px 20px; border:1px dashed var(--line); border-radius:14px;
+  }
+  .card{
+    background:var(--card); border-radius:16px; padding:0; box-shadow:var(--shadow); cursor:pointer;
+    border:1px solid rgba(43,36,28,0.06); display:flex; gap:0; overflow:hidden;
+    transition:transform .15s ease;
+  }
+  .card.harvested{opacity:0.6;}
+  .card:active{transform:scale(0.98);}
+  .card-thumb{
+    width:88px; height:88px; flex-shrink:0; background:var(--paper-deep);
+    background-size:cover; background-position:center;
+    display:flex; align-items:center; justify-content:center;
+    font-size:26px; color:var(--moss-soft);
+  }
+  .card-body{padding:12px 14px; flex:1; min-width:0;}
+  .card-top{display:flex; justify-content:space-between; align-items:flex-start; gap:8px;}
+  .priority-badge{
+    font-family:'JetBrains Mono', monospace; font-size:11px; font-weight:500;
+    color:var(--grape); background:rgba(74,37,69,0.1); padding:3px 8px; border-radius:999px;
+    white-space:nowrap; flex-shrink:0;
+  }
+  .card-date{font-family:'JetBrains Mono', monospace; font-size:10.5px; color:var(--ink-soft);}
+  .card-memo{
+    font-size:13.5px; color:var(--ink); margin:5px 0 0; line-height:1.5;
+    display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden;
+  }
+  .card-loc{font-size:11.5px; color:var(--moss); margin-top:5px; font-family:'JetBrains Mono', monospace;}
+  .harvested-tag{
+    display:inline-block; margin-top:6px; font-size:10.5px; font-weight:500;
+    padding:2px 8px; border-radius:999px; background:rgba(43,36,28,0.07); color:var(--ink-soft);
+    font-family:'JetBrains Mono', monospace;
+  }
+
+  .sheet-backdrop{
+    position:fixed; inset:0; background:rgba(43,36,28,0.4); z-index:50;
+    display:flex; align-items:flex-end; opacity:0; pointer-events:none; transition:opacity .2s ease;
+  }
+  .sheet-backdrop.show{opacity:1; pointer-events:auto;}
+  .sheet{
+    background:var(--paper); width:100%; max-height:92vh; overflow-y:auto;
+    border-radius:20px 20px 0 0; padding:8px 20px 30px; transform:translateY(20px); transition:transform .2s ease;
+  }
+  .sheet-backdrop.show .sheet{transform:translateY(0);}
+  .grabber{width:36px; height:4px; background:var(--line); border-radius:3px; margin:8px auto 14px;}
+  .sheet h2{ font-family:'Shippori Mincho', serif; font-size:21px; color:var(--grape-deep); margin:0 0 14px;}
+
+  .field{margin-bottom:14px;}
+  .field label{
+    display:block; font-size:11.5px; color:var(--ink-soft); margin-bottom:5px;
+    font-family:'JetBrains Mono', monospace; letter-spacing:0.03em;
+  }
+  input, textarea, select{
+    width:100%; border:1px solid var(--line); background:#F9F5E9; color:var(--ink);
+    border-radius:10px; padding:10px 12px; font-size:14.5px; font-family:'Zen Kaku Gothic New';
+  }
+  textarea{resize:vertical; min-height:70px; line-height:1.6;}
+
+  .photo-picker{ display:flex; align-items:center; gap:12px; }
+  .photo-preview{
+    width:76px; height:76px; border-radius:12px; background:var(--paper-deep);
+    background-size:cover; background-position:center; flex-shrink:0;
+    display:flex; align-items:center; justify-content:center; font-size:22px; color:var(--moss-soft);
+    border:1px solid var(--line);
+  }
+  .photo-btn{
+    border:1px solid var(--line); background:#F9F5E9; border-radius:10px; padding:10px 14px;
+    font-size:13.5px; cursor:pointer; color:var(--ink); flex:1;
+  }
+
+  .loc-row{display:flex; gap:8px; align-items:center; margin-bottom:8px;}
+  .loc-btn{
+    border:none; background:var(--moss); color:#fff; border-radius:10px; padding:10px 14px;
+    font-size:13px; cursor:pointer; white-space:nowrap;
+  }
+  .loc-status{font-size:12px; color:var(--ink-soft); flex:1;}
+  .loc-status.ok{color:var(--moss);}
+  .loc-status.err{color:#8B3A2E;}
+
+  .priority-picker{display:flex; gap:6px;}
+  .priority-picker button{
+    flex:1; border:1px solid var(--line); background:#F9F5E9; border-radius:10px;
+    padding:10px 0; font-size:14px; cursor:pointer; font-family:'JetBrains Mono', monospace; color:var(--ink-soft);
+  }
+  .priority-picker button.on{ background:var(--grape); color:#F5EFE0; border-color:var(--grape); font-weight:500;}
+
+  .btn-row{display:flex; gap:10px; margin-top:18px;}
+  button.primary{
+    flex:1; background:var(--grape); color:#F5EFE0; border:none; border-radius:10px;
+    padding:13px; font-size:14.5px; font-weight:500; cursor:pointer; font-family:'Zen Kaku Gothic New';
+  }
+  button.secondary{
+    flex:1; background:var(--moss); color:#fff; border:none; border-radius:10px;
+    padding:13px; font-size:14.5px; font-weight:500; cursor:pointer; font-family:'Zen Kaku Gothic New';
+  }
+  button.ghost{
+    background:transparent; border:1px solid var(--line); color:var(--ink-soft);
+    border-radius:10px; padding:13px 16px; cursor:pointer; font-size:14px; font-family:'Zen Kaku Gothic New';
+  }
+
+  .detail-photo{width:100%; height:220px; border-radius:14px; background:var(--paper-deep) center/cover no-repeat;
+    display:flex; align-items:center; justify-content:center; font-size:36px; color:var(--moss-soft); margin-bottom:14px;}
+  .detail-section{margin-top:16px;}
+  .detail-section h3{
+    font-size:12px; color:var(--moss); letter-spacing:0.06em; text-transform:uppercase;
+    font-family:'JetBrains Mono', monospace; margin:0 0 6px; font-weight:500;
+  }
+  .info-line{font-size:14px; line-height:1.7; color:var(--ink); margin:0;}
+  .map-link{
+    display:inline-block; margin-top:6px; font-size:13px; color:var(--grape); text-decoration:none;
+    border-bottom:1px solid var(--grape-soft);
+  }
+
+  .toast{
+    position:fixed; bottom:24px; left:50%; transform:translateX(-50%);
+    background:var(--grape-deep); color:#F5EFE0; padding:10px 18px; border-radius:999px;
+    font-size:13px; z-index:100; opacity:0; pointer-events:none; transition:opacity .2s;
+  }
+  .toast.show{opacity:1;}
+  ::-webkit-scrollbar{width:0;}
+  @media (prefers-reduced-motion: reduce){ *{transition:none !important;} }
+</style>
+</head>
+<body>
+<div class="app" id="app">
+  <header class="top">
+    <div class="eyebrow">YAMABUDOU FIELD LOG</div>
+    <h1>山葡萄採取ノート</h1>
+    <p class="sub">見つけたその場で記録。優先順位で採取計画に。</p>
+  </header>
+
+  <div class="toolbar">
+    <div class="count-chip" id="countChip">読み込み中…</div>
+    <button class="fab" id="openAdd"><span class="plus">＋</span>発見を登録</button>
+  </div>
+
+  <div class="list" id="list"></div>
+</div>
+
+<!-- 登録/編集フォーム -->
+<div class="sheet-backdrop" id="formBackdrop">
+  <div class="sheet">
+    <div class="grabber"></div>
+    <h2 id="formTitle">発見を登録</h2>
+    <form id="spotForm">
+      <div class="field">
+        <label>写真</label>
+        <div class="photo-picker">
+          <div class="photo-preview" id="photoPreview">🍇</div>
+          <input type="file" accept="image/*" capture="environment" id="f_photo" style="display:none;">
+          <button type="button" class="photo-btn" id="photoBtn">写真を撮る／選ぶ</button>
+        </div>
+      </div>
+
+      <div class="field">
+        <label>位置情報</label>
+        <div class="loc-row">
+          <button type="button" class="loc-btn" id="gpsBtn">📍 現在地を取得</button>
+          <div class="loc-status" id="locStatus">未取得</div>
+        </div>
+        <input type="text" id="f_locNote" placeholder="場所メモ（例：林道分岐から沢沿い、目印の倒木の近く）">
+      </div>
+
+      <div class="field">
+        <label>メモ</label>
+        <textarea id="f_memo" placeholder="房の大きさ・色づき具合・木の高さ・アクセスの様子など"></textarea>
+      </div>
+
+      <div class="field">
+        <label>優先順位</label>
+        <div class="priority-picker" id="priorityPicker">
+          <button type="button" data-v="1">1</button>
+          <button type="button" data-v="2">2</button>
+          <button type="button" data-v="3" class="on">3</button>
+          <button type="button" data-v="4">4</button>
+          <button type="button" data-v="5">5</button>
+        </div>
+      </div>
+
+      <div class="btn-row">
+        <button type="button" class="ghost" id="cancelForm">キャンセル</button>
+        <button type="submit" class="primary">保存する</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- 詳細 -->
+<div class="sheet-backdrop" id="detailBackdrop">
+  <div class="sheet" id="detailSheet"></div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+let spots = [];
+let editingId = null;
+let currentDetailId = null;
+let pendingPhotoDataUrl = null;
+let pendingLoc = null; // {lat, lng}
+let pendingPriority = 3;
+
+const el = (id) => document.getElementById(id);
+
+function showToast(msg){
+  const t = el('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'), 1800);
+}
+function escapeHtml(s){
+  return (s||'').replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+function formatDate(ts){
+  const d = new Date(ts);
+  return `${d.getFullYear()}/${String(d.getMonth()+1).padStart(2,'0')}/${String(d.getDate()).padStart(2,'0')}`;
+}
+
+// ---------- storage ----------
+async function loadSpots(){
+  try{
+    const idxRes = await window.storage.get('spots-index', false);
+    const ids = idxRes ? JSON.parse(idxRes.value) : [];
+    const loaded = [];
+    for(const id of ids){
+      try{
+        const r = await window.storage.get('spot:'+id, false);
+        if(r) loaded.push(JSON.parse(r.value));
+      }catch(e){}
+    }
+    spots = loaded;
+  }catch(e){
+    spots = [];
+  }
+  render();
+}
+async function saveIndex(){
+  try{ await window.storage.set('spots-index', JSON.stringify(spots.map(s=>s.id)), false); }
+  catch(e){ console.error('index save failed', e); }
+}
+async function saveSpot(spot){
+  try{ await window.storage.set('spot:'+spot.id, JSON.stringify(spot), false); }
+  catch(e){ console.error('spot save failed', e); showToast('保存に失敗しました'); }
+}
+async function deleteSpotStorage(id){
+  try{ await window.storage.delete('spot:'+id, false); }catch(e){}
+}
+
+// ---------- image resize ----------
+function resizeImage(file){
+  return new Promise((resolve, reject)=>{
+    const reader = new FileReader();
+    reader.onload = (e)=>{
+      const img = new Image();
+      img.onload = ()=>{
+        const maxW = 720;
+        const scale = Math.min(1, maxW / img.width);
+        const w = Math.round(img.width * scale);
+        const h = Math.round(img.height * scale);
+        const canvas = document.createElement('canvas');
+        canvas.width = w; canvas.height = h;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(img, 0, 0, w, h);
+        resolve(canvas.toDataURL('image/jpeg', 0.7));
+      };
+      img.onerror = reject;
+      img.src = e.target.result;
+    };
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
+
+// ---------- list rendering ----------
+function render(){
+  const list = el('list');
+  const pending = spots.filter(s=>s.status!=='harvested').sort((a,b)=> b.priority - a.priority || a.createdAt - b.createdAt);
+  const harvested = spots.filter(s=>s.status==='harvested').sort((a,b)=> b.harvestedAt - a.harvestedAt);
+
+  el('countChip').textContent = `採取予定 ${pending.length}件 ／ 採取済み ${harvested.length}件`;
+
+  if(spots.length === 0){
+    list.innerHTML = `<div class="empty">まだ記録がありません。<br>山で山葡萄を見つけたら「発見を登録」から記録しましょう。</div>`;
+    return;
+  }
+
+  let html = '';
+  if(pending.length){
+    html += `<div class="section-label">採取予定（優先順位順）</div>`;
+    html += pending.map(cardHtml).join('');
+  }
+  if(harvested.length){
+    html += `<div class="section-label">採取済み</div>`;
+    html += harvested.map(cardHtml).join('');
+  }
+  list.innerHTML = html;
+
+  list.querySelectorAll('.card').forEach(card=>{
+    card.addEventListener('click', ()=> openDetail(card.dataset.id));
+  });
+}
+
+function cardHtml(spot){
+  const thumbStyle = spot.photo ? `style="background-image:url('${spot.photo}')"` : '';
+  const thumbContent = spot.photo ? '' : '🍇';
+  const harvestedCls = spot.status === 'harvested' ? 'harvested' : '';
+  return `
+    <div class="card ${harvestedCls}" data-id="${spot.id}">
+      <div class="card-thumb" ${thumbStyle}>${thumbContent}</div>
+      <div class="card-body">
+        <div class="card-top">
+          <span class="priority-badge">優先度 ${spot.priority}</span>
+          <span class="card-date">${formatDate(spot.createdAt)}</span>
+        </div>
+        ${spot.memo ? `<p class="card-memo">${escapeHtml(spot.memo)}</p>` : '<p class="card-memo" style="color:var(--ink-soft);">メモなし</p>'}
+        ${spot.locNote ? `<div class="card-loc">📍 ${escapeHtml(spot.locNote)}</div>` : (spot.lat ? `<div class="card-loc">📍 GPS記録あり</div>` : '')}
+        ${spot.status === 'harvested' ? `<span class="harvested-tag">採取済み（${formatDate(spot.harvestedAt)}）</span>` : ''}
+      </div>
+    </div>`;
+}
+
+// ---------- add form ----------
+function resetForm(){
+  el('spotForm').reset();
+  pendingPhotoDataUrl = null;
+  pendingLoc = null;
+  pendingPriority = 3;
+  el('photoPreview').style.backgroundImage = '';
+  el('photoPreview').textContent = '🍇';
+  el('locStatus').textContent = '未取得';
+  el('locStatus').className = 'loc-status';
+  document.querySelectorAll('#priorityPicker button').forEach(b=>{
+    b.classList.toggle('on', b.dataset.v === '3');
+  });
+}
+
+function openAddForm(){
+  editingId = null;
+  el('formTitle').textContent = '発見を登録';
+  resetForm();
+  el('formBackdrop').classList.add('show');
+}
+
+function openEditForm(spot){
+  editingId = spot.id;
+  el('formTitle').textContent = '記録を編集';
+  resetForm();
+  el('f_locNote').value = spot.locNote || '';
+  el('f_memo').value = spot.memo || '';
+  pendingPhotoDataUrl = spot.photo || null;
+  pendingLoc = (spot.lat!=null) ? {lat:spot.lat, lng:spot.lng} : null;
+  pendingPriority = spot.priority || 3;
+  if(pendingPhotoDataUrl){
+    el('photoPreview').style.backgroundImage = `url('${pendingPhotoDataUrl}')`;
+    el('photoPreview').textContent = '';
+  }
+  if(pendingLoc){
+    el('locStatus').textContent = `取得済み（${pendingLoc.lat.toFixed(5)}, ${pendingLoc.lng.toFixed(5)}）`;
+    el('locStatus').className = 'loc-status ok';
+  }
+  document.querySelectorAll('#priorityPicker button').forEach(b=>{
+    b.classList.toggle('on', parseInt(b.dataset.v) === pendingPriority);
+  });
+  el('formBackdrop').classList.add('show');
+}
+
+function closeForm(){ el('formBackdrop').classList.remove('show'); }
+
+el('openAdd').addEventListener('click', openAddForm);
+el('cancelForm').addEventListener('click', closeForm);
+el('formBackdrop').addEventListener('click', (e)=>{ if(e.target.id==='formBackdrop') closeForm(); });
+
+el('photoBtn').addEventListener('click', ()=> el('f_photo').click());
+el('f_photo').addEventListener('change', async (e)=>{
+  const file = e.target.files[0];
+  if(!file) return;
+  try{
+    const dataUrl = await resizeImage(file);
+    pendingPhotoDataUrl = dataUrl;
+    el('photoPreview').style.backgroundImage = `url('${dataUrl}')`;
+    el('photoPreview').textContent = '';
+  }catch(err){
+    showToast('写真の読み込みに失敗しました');
+  }
+});
+
+el('gpsBtn').addEventListener('click', ()=>{
+  const statusEl = el('locStatus');
+  if(!navigator.geolocation){
+    statusEl.textContent = 'この環境では位置情報を取得できません。下のメモ欄に手入力してください。';
+    statusEl.className = 'loc-status err';
+    return;
+  }
+  statusEl.textContent = '取得中…';
+  statusEl.className = 'loc-status';
+  navigator.geolocation.getCurrentPosition(
+    (pos)=>{
+      pendingLoc = {lat: pos.coords.latitude, lng: pos.coords.longitude};
+      statusEl.textContent = `取得済み（${pendingLoc.lat.toFixed(5)}, ${pendingLoc.lng.toFixed(5)}）`;
+      statusEl.className = 'loc-status ok';
+    },
+    (err)=>{
+      pendingLoc = null;
+      statusEl.textContent = '取得できませんでした。下のメモ欄に手入力してください。';
+      statusEl.className = 'loc-status err';
+    },
+    { enableHighAccuracy:true, timeout:10000 }
+  );
+});
+
+el('priorityPicker').addEventListener('click', (e)=>{
+  if(e.target.tagName !== 'BUTTON') return;
+  pendingPriority = parseInt(e.target.dataset.v);
+  document.querySelectorAll('#priorityPicker button').forEach(b=>{
+    b.classList.toggle('on', b === e.target);
+  });
+});
+
+el('spotForm').addEventListener('submit', async (e)=>{
+  e.preventDefault();
+  if(editingId){
+    const spot = spots.find(s=>s.id===editingId);
+    spot.photo = pendingPhotoDataUrl;
+    spot.lat = pendingLoc ? pendingLoc.lat : null;
+    spot.lng = pendingLoc ? pendingLoc.lng : null;
+    spot.locNote = el('f_locNote').value.trim();
+    spot.memo = el('f_memo').value.trim();
+    spot.priority = pendingPriority;
+    await saveSpot(spot);
+    showToast('更新しました');
+  } else {
+    const spot = {
+      id: 's_' + Date.now() + '_' + Math.random().toString(36).slice(2,7),
+      photo: pendingPhotoDataUrl,
+      lat: pendingLoc ? pendingLoc.lat : null,
+      lng: pendingLoc ? pendingLoc.lng : null,
+      locNote: el('f_locNote').value.trim(),
+      memo: el('f_memo').value.trim(),
+      priority: pendingPriority,
+      status: 'pending',
+      createdAt: Date.now(),
+      harvestedAt: null
+    };
+    spots.push(spot);
+    await saveSpot(spot);
+    await saveIndex();
+    showToast('登録しました');
+  }
+  closeForm();
+  render();
+});
+
+// ---------- detail view ----------
+function openDetail(id){
+  currentDetailId = id;
+  renderDetail();
+  el('detailBackdrop').classList.add('show');
+}
+function closeDetail(){ el('detailBackdrop').classList.remove('show'); }
+el('detailBackdrop').addEventListener('click', (e)=>{ if(e.target.id==='detailBackdrop') closeDetail(); });
+
+function renderDetail(){
+  const spot = spots.find(s=>s.id===currentDetailId);
+  if(!spot) return;
+  const mapLink = (spot.lat!=null) ? `<a class="map-link" href="https://www.google.com/maps?q=${spot.lat},${spot.lng}" target="_blank" rel="noopener">地図で開く（${spot.lat.toFixed(5)}, ${spot.lng.toFixed(5)}）</a>` : '';
+
+  el('detailSheet').innerHTML = `
+    <div class="grabber"></div>
+    <div class="detail-photo" style="${spot.photo ? `background-image:url('${spot.photo}')` : ''}">${spot.photo ? '' : '🍇'}</div>
+    <h2>優先度 ${spot.priority} ${spot.status==='harvested' ? '・採取済み' : ''}</h2>
+
+    <div class="detail-section">
+      <h3>位置</h3>
+      <p class="info-line">${escapeHtml(spot.locNote) || '（場所メモなし）'}</p>
+      ${mapLink}
+    </div>
+
+    ${spot.memo ? `<div class="detail-section"><h3>メモ</h3><p class="info-line">${escapeHtml(spot.memo)}</p></div>` : ''}
+
+    <div class="detail-section">
+      <h3>記録日</h3>
+      <p class="info-line">${formatDate(spot.createdAt)}${spot.status==='harvested' ? ` ／ 採取日：${formatDate(spot.harvestedAt)}` : ''}</p>
+    </div>
+
+    <div class="btn-row">
+      ${spot.status === 'harvested'
+        ? `<button class="secondary" id="unharvestBtn">採取予定に戻す</button>`
+        : `<button class="secondary" id="harvestBtn">採取済みにする</button>`
+      }
+    </div>
+    <div class="btn-row">
+      <button class="ghost" id="editSpotBtn">編集する</button>
+      <button class="ghost" id="deleteSpotBtn" style="color:#8B3A2E;">削除</button>
+    </div>
+  `;
+
+  el('editSpotBtn').addEventListener('click', ()=>{ closeDetail(); openEditForm(spot); });
+  el('deleteSpotBtn').addEventListener('click', async ()=>{
+    if(!confirm('この記録を削除しますか？')) return;
+    spots = spots.filter(s=>s.id!==spot.id);
+    await deleteSpotStorage(spot.id);
+    await saveIndex();
+    closeDetail();
+    render();
+    showToast('削除しました');
+  });
+  const harvestBtn = el('harvestBtn');
+  if(harvestBtn){
+    harvestBtn.addEventListener('click', async ()=>{
+      spot.status = 'harvested';
+      spot.harvestedAt = Date.now();
+      await saveSpot(spot);
+      closeDetail();
+      render();
+      showToast('採取済みにしました');
+    });
+  }
+  const unharvestBtn = el('unharvestBtn');
+  if(unharvestBtn){
+    unharvestBtn.addEventListener('click', async ()=>{
+      spot.status = 'pending';
+      spot.harvestedAt = null;
+      await saveSpot(spot);
+      closeDetail();
+      render();
+      showToast('採取予定に戻しました');
+    });
+  }
+}
+
+// ---------- init ----------
+loadSpots();
+</script>
+</body>
+</html>
