@@ -278,34 +278,41 @@ function formatDate(ts){
   return `${d.getFullYear()}/${String(d.getMonth()+1).padStart(2,'0')}/${String(d.getDate()).padStart(2,'0')}`;
 }
 
-// ---------- storage ----------
+// ---------- storage (browser localStorage) ----------
 async function loadSpots(){
   try{
-    const idxRes = await window.storage.get('spots-index', false);
-    const ids = idxRes ? JSON.parse(idxRes.value) : [];
+    const idxRaw = localStorage.getItem('spots-index');
+    const ids = idxRaw ? JSON.parse(idxRaw) : [];
     const loaded = [];
     for(const id of ids){
       try{
-        const r = await window.storage.get('spot:'+id, false);
-        if(r) loaded.push(JSON.parse(r.value));
+        const raw = localStorage.getItem('spot:'+id);
+        if(raw) loaded.push(JSON.parse(raw));
       }catch(e){}
     }
     spots = loaded;
   }catch(e){
+    console.error('load failed', e);
     spots = [];
   }
   render();
 }
 async function saveIndex(){
-  try{ await window.storage.set('spots-index', JSON.stringify(spots.map(s=>s.id)), false); }
-  catch(e){ console.error('index save failed', e); }
+  try{ localStorage.setItem('spots-index', JSON.stringify(spots.map(s=>s.id))); }
+  catch(e){
+    console.error('index save failed', e);
+    showToast(e && e.name === 'QuotaExceededError' ? '保存容量の上限です。写真を減らしてください' : '保存に失敗しました');
+  }
 }
 async function saveSpot(spot){
-  try{ await window.storage.set('spot:'+spot.id, JSON.stringify(spot), false); }
-  catch(e){ console.error('spot save failed', e); showToast('保存に失敗しました'); }
+  try{ localStorage.setItem('spot:'+spot.id, JSON.stringify(spot)); }
+  catch(e){
+    console.error('spot save failed', e);
+    showToast(e && e.name === 'QuotaExceededError' ? '保存容量の上限です。写真を減らしてください' : '保存に失敗しました');
+  }
 }
 async function deleteSpotStorage(id){
-  try{ await window.storage.delete('spot:'+id, false); }catch(e){}
+  try{ localStorage.removeItem('spot:'+id); }catch(e){ console.error('delete failed', e); }
 }
 
 // ---------- image resize ----------
