@@ -254,6 +254,11 @@
 
 <div class="toast" id="toast"></div>
 
+<!-- Firebase SDK（クラウド保存・共有用） -->
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+
 <script>
 let spots = [];
 let editingId = null;
@@ -261,6 +266,19 @@ let currentDetailId = null;
 let pendingPhotoDataUrl = null;
 let pendingLoc = null; // {lat, lng}
 let pendingPriority = 3;
+
+const firebaseConfig = {
+  apiKey: "AIzaSyDXpvWQ8qP3NNeMsddorCvbbXVo2wTG-u0",
+  authDomain: "grape-log.firebaseapp.com",
+  projectId: "grape-log",
+  storageBucket: "grape-log.firebasestorage.app",
+  messagingSenderId: "799572224444",
+  appId: "1:799572224444:web:a27837be540c001092a3b9",
+  measurementId: "G-G9BERP1PT4"
+};
+
+firebase.initializeApp(firebaseConfig);
+const db = firebase.firestore();
 
 const el = (id) => document.getElementById(id);
 
@@ -278,41 +296,39 @@ function formatDate(ts){
   return `${d.getFullYear()}/${String(d.getMonth()+1).padStart(2,'0')}/${String(d.getDate()).padStart(2,'0')}`;
 }
 
-// ---------- storage (browser localStorage) ----------
-async function loadSpots(){
-  try{
-    const idxRaw = localStorage.getItem('spots-index');
-    const ids = idxRaw ? JSON.parse(idxRaw) : [];
-    const loaded = [];
-    for(const id of ids){
-      try{
-        const raw = localStorage.getItem('spot:'+id);
-        if(raw) loaded.push(JSON.parse(raw));
-      }catch(e){}
-    }
-    spots = loaded;
-  }catch(e){
-    console.error('load failed', e);
-    spots = [];
-  }
-  render();
+// ---------- storage (Firebase Firestore, 複数端末でリアルタイム共有) ----------
+function startSync(){
+  firebase.auth().signInAnonymously().catch((e)=>{
+    console.error('auth failed', e);
+    showToast('接続に失敗しました。通信環境をご確認ください');
+  });
+
+  firebase.auth().onAuthStateChanged((user)=>{
+    if(!user) return;
+    // spotsコレクションを購読。誰かが追加・編集・削除すると全員の画面に自動反映される
+    db.collection('spots').onSnapshot((snapshot)=>{
+      spots = snapshot.docs.map(doc => doc.data());
+      render();
+    }, (e)=>{
+      console.error('sync failed', e);
+      showToast('データの取得に失敗しました');
+    });
+  });
 }
-async function saveIndex(){
-  try{ localStorage.setItem('spots-index', JSON.stringify(spots.map(s=>s.id))); }
-  catch(e){
-    console.error('index save failed', e);
-    showToast(e && e.name === 'QuotaExceededError' ? '保存容量の上限です。写真を減らしてください' : '保存に失敗しました');
-  }
-}
+
 async function saveSpot(spot){
-  try{ localStorage.setItem('spot:'+spot.id, JSON.stringify(spot)); }
+  try{ await db.collection('spots').doc(spot.id).set(spot); }
   catch(e){
     console.error('spot save failed', e);
-    showToast(e && e.name === 'QuotaExceededError' ? '保存容量の上限です。写真を減らしてください' : '保存に失敗しました');
+    showToast('保存に失敗しました。通信環境をご確認ください');
   }
 }
 async function deleteSpotStorage(id){
-  try{ localStorage.removeItem('spot:'+id); }catch(e){ console.error('delete failed', e); }
+  try{ await db.collection('spots').doc(id).delete(); }
+  catch(e){
+    console.error('delete failed', e);
+    showToast('削除に失敗しました');
+  }
 }
 
 // ---------- image resize ----------
@@ -512,7 +528,6 @@ el('spotForm').addEventListener('submit', async (e)=>{
     };
     spots.push(spot);
     await saveSpot(spot);
-    await saveIndex();
     showToast('登録しました');
   }
   closeForm();
@@ -568,7 +583,6 @@ function renderDetail(){
     if(!confirm('この記録を削除しますか？')) return;
     spots = spots.filter(s=>s.id!==spot.id);
     await deleteSpotStorage(spot.id);
-    await saveIndex();
     closeDetail();
     render();
     showToast('削除しました');
@@ -598,7 +612,7 @@ function renderDetail(){
 }
 
 // ---------- init ----------
-loadSpots();
+startSync();
 </script>
 </body>
 </html>
